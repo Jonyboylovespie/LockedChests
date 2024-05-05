@@ -35,12 +35,12 @@ public class LockedChests implements ModInitializer {
 	public static ChestOwnership[] removeElement(ChestOwnership[] array, int index) {
 		ChestOwnership[] newArray = new ChestOwnership[array.length - 1];
 		int newIndex = 0;
-		for (int i = 0; i < array.length; i++) {
-			if (array[i] != array[index]) {
-				newArray[newIndex] = array[i];
-				newIndex++;
-			}
-		}
+        for (ChestOwnership chestOwnership : array) {
+            if (chestOwnership != array[index]) {
+                newArray[newIndex] = chestOwnership;
+                newIndex++;
+            }
+        }
 		return newArray;
 	}
 
@@ -51,8 +51,8 @@ public class LockedChests implements ModInitializer {
 	}
 
 	public static class ChestOwnership {
-		private BlockPos blockPos;
-		private String owner;
+		private final BlockPos blockPos;
+		private final String owner;
 		private String[] trustedPlayers;
 
 		public ChestOwnership(BlockPos blockPos, String owner) {
@@ -107,8 +107,6 @@ public class LockedChests implements ModInitializer {
 		}
 		return otherBlockPos;
 	}
-
-	private static final Map<ServerPlayerEntity, Timer> timers = new HashMap<>();
 	
 	@Override
 	public void onInitialize() {
@@ -129,32 +127,29 @@ public class LockedChests implements ModInitializer {
 							context.getSource().sendFeedback(() -> Text.literal("ong"), false);
 							ChestOwnership[] lockedChests = readArrayFromFile(file);
 							String[] newArray = new String[1];
-							for (int i = 0; i < lockedChests.length; i++) {
-								BlockPos blockPos = lockedChests[i].blockPos;
-								String owner = lockedChests[i].owner;
-								if (blockPos.equals(location)) {
-									context.getSource().sendFeedback(() -> Text.literal("fax"), false);
-									if (owner.equals(player.getName().getString())) {
-										context.getSource().sendFeedback(() -> Text.literal("real"), false);
-										String[] trustedPlayers = lockedChests[i].trustedPlayers;
-										context.getSource().sendFeedback(() -> Text.literal("adwad"), false);
-										if (trustedPlayers != null){
-											newArray = new String[trustedPlayers.length + 1];
-											for (int playerIndex = 0; playerIndex < trustedPlayers.length; playerIndex++) {
-												newArray[playerIndex] = trustedPlayers[playerIndex];
-											}
-										}
-										newArray[newArray.length - 1] = playerToTrust;
-										lockedChests[i].trustedPlayers = newArray;
-										Serialize(lockedChests);
-										context.getSource().sendFeedback(() -> Text.literal("Successfully trusted " + playerToTrust + " with access to this chest"), false);
-										return 1;
-									}
-									else {
-										context.getSource().sendFeedback(() -> Text.literal("You don't own this chest"), false);
-									}
-								}
-							}
+                            for (ChestOwnership lockedChest : lockedChests) {
+                                BlockPos blockPos = lockedChest.blockPos;
+                                String owner = lockedChest.owner;
+                                if (blockPos.equals(location)) {
+                                    context.getSource().sendFeedback(() -> Text.literal("fax"), false);
+                                    if (owner.equals(player.getName().getString())) {
+                                        context.getSource().sendFeedback(() -> Text.literal("real"), false);
+                                        String[] trustedPlayers = lockedChest.trustedPlayers;
+                                        context.getSource().sendFeedback(() -> Text.literal("adwad"), false);
+                                        if (trustedPlayers != null) {
+                                            newArray = new String[trustedPlayers.length + 1];
+                                            System.arraycopy(trustedPlayers, 0, newArray, 0, trustedPlayers.length);
+                                        }
+                                        newArray[newArray.length - 1] = playerToTrust;
+                                        lockedChest.trustedPlayers = newArray;
+                                        Serialize(lockedChests);
+                                        context.getSource().sendFeedback(() -> Text.literal("Successfully trusted " + playerToTrust + " with access to this chest"), false);
+                                        return 1;
+                                    } else {
+                                        context.getSource().sendFeedback(() -> Text.literal("You don't own this chest"), false);
+                                    }
+                                }
+                            }
 							return 1;
 						})))));
 		
@@ -174,13 +169,13 @@ public class LockedChests implements ModInitializer {
 									if (type.equals("add")) {
 										ChestOwnership[] newArray;
 										if (lockedChests != null){
-											for (int i = 0; i < lockedChests.length; i++) {
-												BlockPos blockPos = lockedChests[i].blockPos;
-												if (blockPos.toString().equals(location.toString()) || blockPos.toString().equals(otherBlockPos.toString())) {
-													context.getSource().sendFeedback(() -> Text.literal("This chest has already been claimed"), false);
-													return 0;
-												}
-											}
+                                            for (ChestOwnership lockedChest : lockedChests) {
+                                                BlockPos blockPos = lockedChest.blockPos;
+                                                if (blockPos.toString().equals(location.toString()) || blockPos.toString().equals(otherBlockPos.toString())) {
+                                                    context.getSource().sendFeedback(() -> Text.literal("This chest has already been claimed"), false);
+                                                    return 0;
+                                                }
+                                            }
 											context.getSource().sendFeedback(() -> Text.literal("Adding chest to locked chests"), false);
 											newArray = addElement(lockedChests, new ChestOwnership(location, player.getName().getString()));
 										}
@@ -262,12 +257,12 @@ public class LockedChests implements ModInitializer {
 					if (itemStack.getItem().getName().toString().contains("nugget")){
 						if (itemStack.getName().getString().equalsIgnoreCase("key")){
 							boolean exists = false;
-							for (int i = 0; i < lockedChests.length; i++) {
-								BlockPos blockPos = lockedChests[i].blockPos;
-								if (blockPos.toString().equals(pos.toString()) || blockPos.toString().equals(getOtherBlockPos(pos, world.getBlockState(pos)).toString())) {
-									exists = true;
-								}
-							}
+                            for (ChestOwnership lockedChest : lockedChests) {
+                                BlockPos blockPos = lockedChest.blockPos;
+                                if (blockPos.toString().equals(pos.toString()) || blockPos.toString().equals(getOtherBlockPos(pos, world.getBlockState(pos)).toString())) {
+                                    exists = true;
+                                }
+                            }
 							if (!exists) {
 								player.sendMessage(Text.literal("Adding chest to locked chests"));
 								ChestOwnership[] newArray = addElement(lockedChests, new ChestOwnership(pos, player.getName().getString()));
@@ -295,24 +290,24 @@ public class LockedChests implements ModInitializer {
 			BlockPos otherBlockPos = getOtherBlockPos(pos, world.getBlockState(pos));
 			
 			String playerName = null;
-			for (int i = 0; i < lockedChests.length; i++) {
-				String[] trustedPlayers = lockedChests[i].trustedPlayers;
-				String name = lockedChests[i].owner;
-				BlockPos blockPos = lockedChests[i].blockPos;
-				if (pos.toString().equals(blockPos.toString()) || otherBlockPos.toString().equals(blockPos.toString())) {
-					playerName = name;
-					if (player.getName().getString().equals(name)) {
-						return ActionResult.PASS;
-					}
-					if (trustedPlayers != null) {
-						for (int trustedPlayerIndex = 0; trustedPlayerIndex < trustedPlayers.length; trustedPlayerIndex++) {
-							if (player.getName().getString().equals(trustedPlayers[trustedPlayerIndex])) {
-								return ActionResult.PASS;
-							}
-						}
-					}
-				}
-			}
+            for (ChestOwnership lockedChest : lockedChests) {
+                String[] trustedPlayers = lockedChest.trustedPlayers;
+                String name = lockedChest.owner;
+                BlockPos blockPos = lockedChest.blockPos;
+                if (pos.toString().equals(blockPos.toString()) || otherBlockPos.toString().equals(blockPos.toString())) {
+                    playerName = name;
+                    if (player.getName().getString().equals(name)) {
+                        return ActionResult.PASS;
+                    }
+                    if (trustedPlayers != null) {
+                        for (String trustedPlayer : trustedPlayers) {
+                            if (player.getName().getString().equals(trustedPlayer)) {
+                                return ActionResult.PASS;
+                            }
+                        }
+                    }
+                }
+            }
 			if (playerName != null) {
 				player.sendMessage(Text.literal("Locked by " + playerName));
 				return ActionResult.FAIL;
