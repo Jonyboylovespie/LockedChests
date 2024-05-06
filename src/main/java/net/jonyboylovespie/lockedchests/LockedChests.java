@@ -124,18 +124,14 @@ public class LockedChests implements ModInitializer {
 								Text.literal("Block isn't a chest");
 								return 0;
 							}
-							context.getSource().sendFeedback(() -> Text.literal("ong"), false);
 							ChestOwnership[] lockedChests = readArrayFromFile(file);
 							String[] newArray = new String[1];
                             for (ChestOwnership lockedChest : lockedChests) {
                                 BlockPos blockPos = lockedChest.blockPos;
                                 String owner = lockedChest.owner;
                                 if (blockPos.equals(location)) {
-                                    context.getSource().sendFeedback(() -> Text.literal("fax"), false);
                                     if (owner.equals(player.getName().getString())) {
-                                        context.getSource().sendFeedback(() -> Text.literal("real"), false);
                                         String[] trustedPlayers = lockedChest.trustedPlayers;
-                                        context.getSource().sendFeedback(() -> Text.literal("adwad"), false);
                                         if (trustedPlayers != null) {
                                             newArray = new String[trustedPlayers.length + 1];
                                             System.arraycopy(trustedPlayers, 0, newArray, 0, trustedPlayers.length);
