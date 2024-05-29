@@ -1,24 +1,17 @@
 {
 	"schemaVersion": 1,
-	"id": "auto-answer-server-trivia",
+	"id": "locked-chests",
 	"version": "${version}",
-	"name": "Auto Answer Server Trivia",
-	"description": "This is a mod designed to auto answer trivia questions in chat.",
+	"name": "Locked Chests",
+	"description": "Server mod designed to allow chest locking.",
 	"authors": [
 		"Jonyboylovespie"
 	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
-	"license": "MIT",
+	"license": "Apache-2.0",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
 			"net.jonyboylovespie.lockedchests.LockedChests"
-		],
-		"fabric-datagen": [
-			"net.jonyboylovespie.lockedchests.LockedChestsDataGenerator"
 		]
 	},
 	"mixins": [
